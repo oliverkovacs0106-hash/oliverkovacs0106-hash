@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console Case Generator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jbYellow: '#FFEA00', 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        /* Loading state */
+        #root:empty::before {
+            content: 'Loading Console Case Generator...';
+            display: block;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans selection:bg-yellow-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS (Manually defined to prevent crash) ---
+        const IconBase = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const ChevronRight = ({ className }) => <IconBase className={className}><polyline points="9 18 15 12 9 6" /></IconBase>;
+        const Clipboard = ({ className }) => <IconBase className={className}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /></IconBase>;
+        const ArrowLeft = ({ className }) => <IconBase className={className}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></IconBase>;
+        // Fixed: Renamed from SearchIcon to Search to match usage
+        const Search = ({ className }) => <IconBase className={className}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></IconBase>;
+        const RotateCcw = ({ className }) => <IconBase className={className}><path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></IconBase>;
+        const Check = ({ className }) => <IconBase className={className}><polyline points="20 6 9 17 4 12" /></IconBase>;
+        const Smartphone = ({ className }) => <IconBase className={className}><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></IconBase>;
+        const Calendar = ({ className }) => <IconBase className={className}><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></IconBase>;
+        const FileText = ({ className }) => <IconBase className={className}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></IconBase>;
+        const DollarSign = ({ className }) => <IconBase className={className}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></IconBase>;
+        const Gift = ({ className }) => <IconBase className={className}><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></IconBase>;
+        const Plus = ({ className }) => <IconBase className={className}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></IconBase>;
+        const X = ({ className }) => <IconBase className={className}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconBase>;
+
+        // --- DATA STRUCTURE ---
+        const caseData = {
+          "Telstra Branded Service": {
+            "icon": "telstra",
+            "New Number": {
+              "Without DPC": {
+                "$31 Concession": {
+                  code: "T147",
+                  text: "cx in store to start a new number on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\nID, 2sv and contact details confirmed."
+                },
+                "$50 Plan": {
+                  code: "T101",
+                  text: "cx in store to start a new number on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$57 Bundle Plan": {
+                  code: "T102",
+                  text: "cx in store to start a new number on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\nID, 2sv and contact details confirmed.",
+                  keywords: "internet bundle"
+                },
+                "$70 Plan": {
+                  code: "T103",
+                  text: "cx in store to start a new number on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$80 Plan": {
+                  code: "T104",
+                  text: "cx in store to start a new number on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$99 Plan": {
+                  code: "T105",
+                  text: "cx in store to start a new number on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                }
+              },
+              "With DPC": {
+                "In Store Stock": {
+                  "$31 Concession": {
+                    code: "T148",
+                    text: "cx in store to start a new number on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$50 Plan": {
+                    code: "T106",
+                    text: "cx in store to start a new number on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$57 Bundle Plan": {
+                    code: "T107",
+                    text: "cx in store to start a new number on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed.",
+                    keywords: "internet bundle"
+                  },
+                  "$70 Plan": {
+                    code: "T108",
+                    text: "cx in store to start a new number on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$80 Plan": {
+                    code: "T109",
+                    text: "cx in store to start a new number on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$99 Plan": {
+                    code: "T110",
+                    text: "cx in store to start a new number on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  }
+                },
+                "Warehouse Delivery": {
+                   "$31 Concession": {
+                     code: "T149",
+                     text: "cx in store to start a new number on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$50 Plan": {
+                     code: "T111",
+                     text: "cx in store to start a new number on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$57 Bundle Plan": {
+                     code: "T112",
+                     text: "cx in store to start a new number on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed.",
+                     keywords: "internet bundle"
+                   },
+                   "$70 Plan": {
+                     code: "T113",
+                     text: "cx in store to start a new number on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$80 Plan": {
+                     code: "T114",
+                     text: "cx in store to start a new number on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$99 Plan": {
+                     code: "T115",
+                     text: "cx in store to start a new number on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   }
+                }
+              }
+            },
+            "Port In": {
+              "Without DPC": {
+                "$31 Concession": {
+                  code: "T152",
+                  text: "cx in store to port in on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\nID, 2sv and contact details confirmed."
+                },
+                "$50 Plan": {
+                  code: "T136",
+                  text: "cx in store to port in on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$57 Bundle Plan": {
+                  code: "T137",
+                  text: "cx in store to port in on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\nID, 2sv and contact details confirmed.",
+                  keywords: "internet bundle"
+                },
+                "$70 Plan": {
+                  code: "T138",
+                  text: "cx in store to port in on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$80 Plan": {
+                  code: "T139",
+                  text: "cx in store to port in on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                },
+                "$99 Plan": {
+                  code: "T140",
+                  text: "cx in store to port in on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\nID, 2sv and contact details confirmed."
+                }
+              },
+              "With DPC": {
+                "In Store Stock": {
+                  "$31 Concession": {
+                    code: "T150",
+                    text: "cx in store to port in on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$50 Plan": {
+                    code: "T126",
+                    text: "cx in store to port in on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$57 Bundle Plan": {
+                    code: "T127",
+                    text: "cx in store to port in on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed.",
+                    keywords: "internet bundle"
+                  },
+                  "$70 Plan": {
+                    code: "T128",
+                    text: "cx in store to port in on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$80 Plan": {
+                    code: "T129",
+                    text: "cx in store to port in on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  },
+                  "$99 Plan": {
+                    code: "T130",
+                    text: "cx in store to port in on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nID, 2sv and contact details confirmed."
+                  }
+                },
+                "Warehouse Delivery": {
+                   "$31 Concession": {
+                     code: "T151",
+                     text: "cx in store to port in on a T50 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx applied concession discount to the plan. cx is aware of credit t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$50 Plan": {
+                     code: "T131",
+                     text: "cx in store to port in on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$57 Bundle Plan": {
+                     code: "T132",
+                     text: "cx in store to port in on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx is aware of Bundle plan t&cs\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed.",
+                     keywords: "internet bundle"
+                   },
+                   "$70 Plan": {
+                     code: "T133",
+                     text: "cx in store to port in on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$80 Plan": {
+                     code: "T134",
+                     text: "cx in store to port in on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   },
+                   "$99 Plan": {
+                     code: "T135",
+                     text: "cx in store to port in on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\ncx also requested to attach xxx device to the plan over xx months. cx is aware of relevant t&cs.\nstock was confirmed via warehouse delivery. cx is aware of delivery timeframes.\nID, 2sv and contact details confirmed."
+                   }
+                }
+              }
+            },
+            "CHOWN (Change Ownership)": {
+              "Without DPC": {
+                "$31 Concession": {
+                  code: "T153",
+                  text: "cx in store to Chown into their own account on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx applied concession discount to the plan. cx is aware of credit t&cs\nID, 2sv and contact details confirmed."
+                },
+                "$50 Plan": {
+                  code: "T116",
+                  text: "cx in store to Chown into their own account on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\nID, 2sv and contact details confirmed."
+                },
+                "$57 Bundle Plan": {
+                  code: "T117",
+                  text: "cx in store to chown on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx is aware of Bundle plan t&cs\nID, 2sv and contact details confirmed.",
+                  keywords: "internet bundle"
+                },
+                "$70 Plan": {
+                  code: "T118",
+                  text: "cx in store to chown on on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\nID, 2sv and contact details confirmed."
+                },
+                "$80 Plan": {
+                  code: "T119",
+                  text: "cx in store to chown on on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\nID, 2sv and contact details confirmed."
+                },
+                "$99 Plan": {
+                  code: "T120",
+                  text: "cx in store to chown on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\nID, 2sv and contact details confirmed."
+                }
+              },
+              "With DPC": {
+                "$31 Concession": {
+                  code: "T154",
+                  text: "cx in store to Chown into their own account on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\ncx applied concession discount to the plan. cx is aware of credit t&cs\nID, 2sv and contact details confirmed."
+                },
+                "$50 Plan": {
+                  code: "T121",
+                  text: "cx in store to Chown into their own account on a T50 Starter Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\nID, 2sv and contact details confirmed."
+                },
+                "$57 Plan": {
+                  code: "T122",
+                  text: "cx in store to chown on a T57 Bundle Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\ncx is aware of Bundle plan t&cs\nID, 2sv and contact details confirmed.",
+                  keywords: "internet bundle"
+                },
+                "$70 Plan": {
+                  code: "T123",
+                  text: "cx in store to start a new number on a T70 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\nID, 2sv and contact details confirmed."
+                },
+                "$80 Plan": {
+                  code: "T124",
+                  text: "cx in store to start a new number on a T80 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\nID, 2sv and contact details confirmed."
+                },
+                "$99 Plan": {
+                  code: "T125",
+                  text: "cx in store to start a new number on a T99 Cas plan. cx is aware of all t&cs and etcs with the plan.\nBoth new account and old account owner were present.\ncx had a DPC on their account which has been kept: xxx device with xx months remaining.\nID, 2sv and contact details confirmed."
+                }
+              }
+            },
+            "Existing Customer": {
+              "DPC 12/24/36": {
+                 "In Store Stock": {
+                     "Standard": {
+                         code: "T141",
+                         text: "cx in store to attach a xxx over xx months their their service ending in xx\ncx is aware of all t&cs and etcs with their new plan.\n2sv and contact details confirmed."
+                     },
+                     "Brand Migrate JB->Telstra": {
+                         code: "T157",
+                         text: "cx in store to move from their jb plan to a T-Plan,\ncx attaching a xxx over xx months with their service ending in xx\ncx is aware of all t&cs and etcs with their new plan.\n2sv and contact details confirmed."
+                     }
+                 },
+                 "Warehouse Delivery": {
+                     "Standard": {
+                         code: "T142",
+                         text: "cx in store to attach a xxx over xx months with their service ending in xx\ncx is aware of all t&cs and etcs with their new plan\ncx is aware of warehouse delivery timeframes.\n2sv and contact details confirmed."
+                     },
+                     "Brand Migrate JB->Telstra": {
+                         code: "T155",
+                         text: "cx in store to move from their jb plan to a T-Plan,\ncx attaching a xxx over xx months with their service ending in xx\ncx is aware of all t&cs and etcs with their new plan.\ncx is aware of delivery timeframes.\n2sv and contact details confirmed."
+                     }
+                 }
+              },
+              "DPC Outright": {
+                "In Store Stock": {
+                     "Standard": {
+                         code: "T143",
+                         text: "cx in store to purchase a xxx outright w/points + pay.\ncx is aware of all t&cs.\n2sv and contact details confirmed."
+                     },
+                     "Also Brand Migrate": {
+                         code: "T158",
+                         text: "cx in store to purchase a xxx outright w/points + pay.\ncx is aware of all t&cs.\n2sv and contact details confirmed.\ncx also reqesting to move xx to a jb 64. cx is aware of t&cs and etcs.\nLegacy change fnn brand transition method used due to instability with the current process.\n2sv and contact details confirmed."
+                     }
+                },
+                "Warehouse Delivery": {
+                     "Standard": {
+                         code: "T144",
+                         text: "cx in store to purchase an xxx outright w/points + pay via warehouse delivery\ncx is aware of all t&cs.\ncx is aware of warehouse delivery timeframes.\n2sv and contact details confirmed."
+                     },
+                     "Also Brand Migrate": {
+                         code: "T156",
+                         text: "cx in store to purchase a xxx outright w/points + pay via warehouse delivery.\ncx is aware of all t&cs.\n2sv and contact details confirmed.\ncx also reqesting to move xx to a jb 64. cx is aware of t&cs and etcs.\nLegacy change fnn brand transition method used due to instability with the current process.\n2sv and contact details confirmed."
+                     }
+                }
+              }
+            }
+          },
+          "Internet & Bundles": {
+            "icon": "internet",
+            "New Telstra Internet Plus": {
+              code: "T145",
+              text: "cx in store to start a new Telstra Internet Plus xx per month.\ncx is aware of t&cs, etcs, modem t&cs and Fibre technology type t&cs.\ncx is aware of modem delivery timeframes.\n2sv and contact details confirmed.",
+              keywords: "internet wifi nbn"
+            },
+            "New Telstra Internet Only": {
+              code: "T_IO",
+              text: "cx in store to start a new telstra internet only xx per month.\ncx is aware of t&cs, etcs, modem t&cs and Fibre technology type t&cs.\ncx is aware of modem delivery timeframes.\n2sv and contact details confirmed.",
+              keywords: "internet wifi nbn"
+            },
+            "COAT (Change of Access Tech)": {
+              code: "T146",
+              text: "cx in store to COAT their existing Telstra Internet Plus service to FTTP.\ncx is aware of NBN appointment.\ncx is aware of new t&cs, etcs and fibre technology type t&cs.\n2sv and contact details confirmed.",
+              keywords: "internet wifi nbn"
+            },
+            "5G Home Internet": {
+              code: "T159",
+              text: "cx in store to start a new 5G home internet service.\ncx was made aware of expected speeds.\ncx is aware of t&cs, etcs and modem delivery timeframes.\n2sv and contact details confirmed.",
+              keywords: "internet wifi 5g"
+            },
+            "5G + Disconnect NBN": {
+              code: "T160",
+              text: "cx in store to start a new 5G home internet service.\ncx was made aware of expected speeds.\ncx is aware of t&cs, etcs and modem delivery timeframes.\ncx also requested for a follow up and to cancel their current NBN service once order is complete.\nTask left.\n2sv and contact details confirmed.",
+              keywords: "internet wifi 5g"
+            }
+          },
+          "Mobile Broadband": {
+            "icon": "mbb",
+            "Telstra": {
+              "With DPC": {
+                "In Store Stock": {
+                  "$15 Bundle": {
+                    code: "MBB1",
+                    text: "cx in store to start a new t15MBB cas. cx is aware of t&cs and etcs with the plan.\ncx also attaching a xxx over xx months. cx is aware of etcs\n2sv and contact details confirmed",
+                    keywords: "internet data wifi mbb"
+                  }
+                },
+                "Warehouse Delivery": {
+                   "$15 Bundle": {
+                    code: "MBB2",
+                    text: "cx in store to start a new t15MBB cas. cx is aware of t&cs and etcs with the plan\ncx also attaching a xxx over xx months. cx is aware of etcs.\ncx is receiving device via warehouse delivery\ncx is aware of delivery timeframes.\n2sv and contact details confirmed.",
+                    keywords: "internet data wifi mbb"
+                   }
+                }
+              },
+              "Without DPC": {
+                 "$15 Bundle": {
+                    code: "MBB7",
+                    text: "cx in store to start a new t15MBB cas. cx is aware of t&cs and etcs with the plan.\n2sv and contact details confirmed",
+                    keywords: "internet data wifi mbb"
+                 }
+              }
+            },
+            "JB Hi-Fi": {
+              "$19 Plan": {
+                code: "MBB3",
+                text: "cx in store to start a new jb19 mbb. cx is aware of t&cs and etcs with the plan.\n2sv and contact details updated.",
+                keywords: "internet data wifi mbb"
+              },
+              "$49 Plan": {
+                code: "MBB4",
+                text: "cx in store to start a new jb49x24mbb. cx is aware of t&cs and etcs with the plan.\ncx received xxx gift card / phone credit.\n2sv and contact details updated.",
+                keywords: "internet data wifi mbb"
+              },
+              "$69 Plan": {
+                code: "MBB5",
+                text: "cx in store to start a new jb69x24mbb. cx is aware of t&cs and etcs with the plan.\ncx received xxx gift card / phone credit.\n2sv and contact details updated.",
+                keywords: "internet data wifi mbb"
+              },
+              "$69 Plan w/ $10 Credit": {
+                code: "MBB6",
+                text: "cx in store to start a new jb69x24mbb, with $10. cx is aware of t&cs and etcs with the plan.\ncx is aware of credit expiry dates.\ncx received xxx gift card / phone credit.\n2sv and contact details updated.",
+                keywords: "internet data wifi mbb"
+              }
+            }
+          },
+          "JB Hi-Fi Branded Service": {
+            "icon": "jb",
+            "New Number": {
+              "$64 Plan": {
+                code: "J1",
+                text: "cx in store to start a new JB64 cas. cx is aware of t&cs and etcs.\nID, 2sv and contact details confirmed."
+              },
+              "$79 Plan": {
+                code: "J2",
+                text: "cx in store to start a new JB79 x 24. cx is aware of t&cs and etcs.\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              },
+              "$99 Plan": {
+                code: "J3",
+                text: "cx in store to start a new JB99 x 24. cx is aware of t&cs and etcs.\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              },
+              "$99 Plan w/ $10 Credit": {
+                code: "J4",
+                text: "cx in store to start a new JB89 x 24. cx is aware of t&cs and etcs.\ncx is aware plan will revert to original $99 after 24M\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              }
+            },
+            "Port In": {
+              "$64 Plan": {
+                code: "J5",
+                text: "cx in store to port into a JB64 cas. cx is aware of t&cs and etcs.\nID, 2sv and contact details confirmed."
+              },
+              "$79 Plan": {
+                code: "J6",
+                text: "cx in store to port into a JB79 x 24. cx is aware of t&cs and etcs.\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              },
+              "$99 Plan": {
+                code: "J7",
+                text: "cx in store to port into a JB99 x 24. cx is aware of t&cs and etcs.\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              },
+              "$99 Plan w/ $10 Credit": {
+                code: "J8",
+                text: "cx in store to port into a JB89 x 24. cx is aware of t&cs and etcs.\ncx is aware plan will revert to original $99 after 24M\ncx received xxx gift card / phone credit\nID, 2sv and contact details confirmed."
+              }
+            },
+            "Upgrade (Brand Migration)": {
+              "Generic": {
+                code: "J9",
+                text: "cx in store to move their T-Plan to a jb64.\ncx is aware of all t&cs and etcs with the plan.\n2sv and contact details confirmed."
+              }
+            },
+            "CHOWN": {
+                "52 -> 64": {
+                    code: "J10",
+                    text: "cx in store to receive a CHOWN from a jb 52 to a jb64.\ncx is aware of t&cs and etcs with the plan.\nlegacy change FNN method used due to partner plan.\nboth AO present.\n2sv, contact details were confirmed."
+                },
+                "64 -> 64": {
+                    code: "J11",
+                    text: "cx in store to receive a CHOWN for jb64.\ncx is aware of t&cs and etcs with the plan.\nlegacy change FNN method used due to partner plan.\nboth AO present.\n2sv, contact details were confirmed."
+                },
+                "Also Brand Migrate": {
+                    code: "J12",
+                    text: "cx in store to receive a CHOWN.\nAlso migrated from T-Plan to a jb64 in the process.\ncx is aware of new plan t&cs and etcs.\nlegacy change FNN method used due to partner plan.\nboth AO present.\n2sv, contact details updated."
+                }
+            }
+          },
+          "Belong": {
+              "icon": "belong",
+              "Switch to Belong": {
+                  code: "BE1",
+                  text: "cx in store moving their telstra home internet to belong with JB\nAVCID provided.\n2sv confirmed",
+                  keywords: "internet nbn"
+              }
+          },
+          "Prepaid": {
+              "icon": "prepaid",
+              "New Prepaid": {
+                  code: "P1",
+                  text: "cx in store to start a new prepaid service.\ncx is aware of t&cs.\n2sv and contact details confirmed."
+              },
+              "Postpaid to Prepaid": {
+                  code: "P3",
+                  text: "cx in store to move their postpaid service to a prepaid service.\ncx is aware of t&cs.\n2sv and contact details confirmed."
+              },
+              "CHOWN": {
+                  code: "P4",
+                  text: "cx in store to chown into a new prepaid service.\nBoth AO present.\ncx is aware of t&cs.\n2sv and contact confirmed."
+              }
+          }
+        };
+
+        // Flatten data for search
+        const flattenData = (data, prefix = []) => {
+          let result = [];
+          Object.keys(data).forEach(key => {
+            if (key === 'icon') return;
+            const item = data[key];
+            if (item.text && item.code) {
+              result.push({
+                path: [...prefix, key],
+                ...item
+              });
+            } else {
+              result = result.concat(flattenData(item, [...prefix, key]));
+            }
+          });
+          return result;
+        };
+
+        const allTemplates = flattenData(caseData);
+
+        const App = () => {
+          const [path, setPath] = useState([]);
+          const [searchTerm, setSearchTerm] = useState('');
+          const [device, setDevice] = useState('');
+          const [months, setMonths] = useState('');
+          const [copied, setCopied] = useState(false);
+          
+          // New States for "Chaining"
+          const [caseChain, setCaseChain] = useState([]);
+          const [showAddModal, setShowAddModal] = useState(false);
+
+          // Reset inputs when path changes
+          useEffect(() => {
+            setDevice('');
+            setMonths('');
+            setCopied(false);
+          }, [path]);
+
+          // Navigate deeper
+          const navigateTo = (key) => {
+            setPath([...path, key]);
+            setSearchTerm(''); // Clear search on nav
+          };
+
+          // Navigate back
+          const navigateBack = () => {
+            setPath(path.slice(0, -1));
+          };
+
+          const navigateHome = () => {
+              setPath([]);
+              setSearchTerm('');
+          };
+
+          // Determine current data level
+          const currentData = useMemo(() => {
+            let current = caseData;
+            for (const key of path) {
+              if (current[key]) {
+                current = current[key];
+              } else {
+                return null;
+              }
+            }
+            return current;
+          }, [path]);
+
+          // Check if we are at a leaf node (Template)
+          const isLeaf = currentData && currentData.text;
+          
+          // JB Detection
+          const isJB = path.some(segment => segment.includes("JB Hi-Fi"));
+
+          // Generate final text
+          const generatedText = useMemo(() => {
+            if (!isLeaf) return '';
+            let text = currentData.text;
+            
+            // Replace placeholders
+            if (device) text = text.replaceAll('xxx', device);
+            if (months && !isJB) text = text.replaceAll('xx', months);
+            
+            return text;
+          }, [isLeaf, currentData, device, months, isJB]);
+
+          // Add current note to chain logic
+          const handleAddToCase = () => {
+              const newChainItem = {
+                  code: currentData.code,
+                  text: generatedText,
+                  path: path
+              };
+              setCaseChain([...caseChain, newChainItem]);
+              setShowAddModal(true);
+          };
+
+          // Action: Add Another Plan (from Modal)
+          const handleAddAnother = () => {
+              setShowAddModal(false);
+              navigateHome();
+              setDevice('');
+              setMonths('');
+          };
+
+          // Action: Finish & Copy (from Modal or Sticky Footer)
+          const handleFinishCase = () => {
+              let finalChain = [...caseChain];
+              
+              const fullText = finalChain.map((item, index) => {
+                  if (index === 0) return item.text;
+                  return `\n__________________________\nIn addition:\n\n${item.text}`;
+              }).join('');
+
+              navigator.clipboard.writeText(fullText);
+              
+              setShowAddModal(false);
+              setCaseChain([]); 
+              navigateHome();
+              
+              alert("All case notes combined and copied to clipboard!"); 
+          };
+
+          // Copy just this note
+          const handleCopy = () => {
+              navigator.clipboard.writeText(generatedText);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+          };
+
+          const handleSearchResultClick = (resultPath) => {
+            setPath(resultPath);
+            setSearchTerm('');
+          };
+
+          // Search Logic
+          const filteredResults = useMemo(() => {
+            if (!searchTerm) return [];
+            const lower = searchTerm.toLowerCase();
+            return allTemplates.filter(t => 
+              t.code.toLowerCase().includes(lower) || 
+              t.path.join(' ').toLowerCase().includes(lower) ||
+              t.text.toLowerCase().includes(lower) ||
+              (t.keywords && t.keywords.toLowerCase().includes(lower))
+            );
+          }, [searchTerm]);
+
+          // UI Components
+          return (
+            <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-yellow-200 p-4 md:p-8 pb-32">
+              <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100">
+                
+                {/* Header - JB Style */}
+                <div className="bg-yellow-400 text-slate-900 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                      <Clipboard className="w-6 h-6 text-slate-900" />
+                      Console Case Generator
+                    </h1>
+                    <p className="text-slate-800 text-sm mt-1">Select a scenario to generate case notes</p>
+                  </div>
+                  
+                  {/* Search Bar */}
+                  <div className="relative w-full md:w-64">
+                    <input 
+                      type="text" 
+                      placeholder="Search..." 
+                      className="w-full pl-10 pr-4 py-2 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-900 opacity-50" />
+                  </div>
+                </div>
+
+                {/* Search Results Overlay */}
+                {searchTerm && (
+                  <div className="p-4 bg-slate-50 border-b border-slate-200">
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Search Results</h3>
+                    {filteredResults.length === 0 ? (
+                      <p className="text-slate-400 italic">No templates found.</p>
+                    ) : (
+                      <div className="grid gap-2">
+                        {filteredResults.map((res) => (
+                          <button 
+                            key={res.code}
+                            onClick={() => handleSearchResultClick(res.path)}
+                            className="flex flex-col text-left p-3 bg-white rounded-lg border border-slate-200 hover:border-yellow-500 hover:shadow-md transition-all group"
+                          >
+                            <div className="flex justify-between w-full">
+                              <span className="font-bold text-slate-700 group-hover:text-slate-900">{res.path[res.path.length-1]}</span>
+                              <span className="text-xs text-slate-500 bg-yellow-100 px-2 py-0.5 rounded-full border border-yellow-200">{res.code}</span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">{res.path.slice(0, -1).join(' > ')}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Main Content Area */}
+                {!searchTerm && (
+                  <div className="p-6">
+                    
+                    {/* Breadcrumbs */}
+                    <div className="flex items-center gap-2 mb-6 text-sm overflow-x-auto pb-2">
+                      <button 
+                        onClick={navigateHome}
+                        className={`p-2 rounded-md hover:bg-yellow-100 ${path.length === 0 ? 'font-bold text-slate-900 bg-yellow-200' : 'text-slate-500'}`}
+                      >
+                        Home
+                      </button>
+                      {path.map((segment, index) => (
+                        <div key={index} className="flex items-center gap-2 whitespace-nowrap">
+                          <ChevronRight className="w-4 h-4 text-slate-300" />
+                          <button 
+                            onClick={() => setPath(path.slice(0, index + 1))}
+                            className={`p-2 rounded-md hover:bg-yellow-100 ${index === path.length - 1 ? 'font-bold text-slate-900 bg-yellow-200' : 'text-slate-500'}`}
+                          >
+                            {segment}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* View: Selection Grid */}
+                    {!isLeaf && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-in fade-in zoom-in duration-300">
+                        {currentData && Object.keys(currentData).filter(k => k !== 'icon').map((key) => {
+                          const isTelstra = key.includes('Telstra') || key.includes('Internet') || key.includes('Mobile Broadband (Telstra)');
+                          const isJB = key.includes('JB');
+                          const isBelong = key.includes('Belong');
+                          const isPrepaid = key.includes('Prepaid');
+                          const isPrice = key.includes('$');
+                          const isMBB = key.includes('Mobile Broadband');
+                          
+                          let borderColor = "border-slate-200 hover:border-yellow-400";
+                          let bgColor = "bg-white hover:bg-slate-50";
+                          let icon = <ChevronRight className="w-5 h-5 text-slate-300" />;
+
+                          if (isTelstra) { borderColor = "border-blue-200 hover:border-blue-500"; bgColor = "bg-blue-50/50 hover:bg-blue-50"; }
+                          if (isJB) { borderColor = "border-yellow-200 hover:border-yellow-500"; bgColor = "bg-yellow-50/50 hover:bg-yellow-50"; }
+                          if (isPrice) { borderColor = "border-green-200 hover:border-green-500"; bgColor = "bg-green-50/30 hover:bg-green-50"; }
+                          if (isMBB) { borderColor = "border-purple-200 hover:border-purple-500"; bgColor = "bg-purple-50/50 hover:bg-purple-50"; }
+
+                          
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => navigateTo(key)}
+                              className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all shadow-sm hover:shadow-md text-left h-full ${borderColor} ${bgColor}`}
+                            >
+                              <span className="font-medium text-slate-700">{key}</span>
+                              {icon}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* View: Editor Leaf Node */}
+                    {isLeaf && (
+                      <div className="animate-in slide-in-from-bottom-4 duration-300 max-w-2xl mx-auto">
+                        
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-semibold text-slate-800">{path[path.length - 1]}</h2>
+                          </div>
+                          <button 
+                            onClick={navigateBack}
+                            className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1 px-3 py-1 rounded-full hover:bg-yellow-100"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back
+                          </button>
+                        </div>
+
+                        {/* Variable Inputs */}
+                        {(currentData.text.includes('xxx') || (currentData.text.includes('xx') && !isJB)) && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                            <h3 className="text-sm font-bold text-yellow-800 mb-3 uppercase tracking-wide flex items-center gap-2">
+                               Required Details
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {currentData.text.includes('xxx') && (
+                                <div>
+                                  <label className="block text-xs font-semibold text-yellow-700 mb-1 flex items-center gap-1">
+                                    {isJB ? <Gift className="w-3 h-3"/> : <Smartphone className="w-3 h-3"/>}
+                                    {isJB ? " Gift Card / Phone Credit Amount" : " Device / Item Name"}
+                                  </label>
+                                  <input 
+                                    type="text"
+                                    autoFocus
+                                    placeholder={isJB ? "e.g. $300 Gift Card" : "e.g. iPhone 15 Pro"}
+                                    value={device}
+                                    onChange={(e) => setDevice(e.target.value)}
+                                    className="w-full border border-yellow-300 rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+                                  />
+                                </div>
+                              )}
+                              {currentData.text.includes('xx') && !isJB && (
+                                 <div>
+                                  <label className="block text-xs font-semibold text-yellow-700 mb-1 flex items-center gap-1">
+                                    {/* Check if this is the "New Bundle" (T145) or the new "Internet Only" (T_IO) where xx = price */}
+                                    {['T145', 'T_IO'].includes(currentData.code) ? (
+                                        <>
+                                            <DollarSign className="w-3 h-3"/> Monthly Cost ($)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Calendar className="w-3 h-3"/> Duration / Date
+                                        </>
+                                    )}
+                                  </label>
+                                  <input 
+                                    type="text"
+                                    placeholder={['T145', 'T_IO'].includes(currentData.code) ? "e.g. $99" : "e.g. 24 months"}
+                                    value={months}
+                                    onChange={(e) => setMonths(e.target.value)}
+                                    className="w-full border border-yellow-300 rounded-lg p-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Preview Box */}
+                        <div className="relative">
+                          <label className="block text-sm font-medium text-slate-500 mb-2 flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Generated Note
+                          </label>
+                          <textarea 
+                            readOnly
+                            value={generatedText}
+                            className="w-full h-64 p-4 rounded-xl border border-slate-300 bg-slate-50 font-mono text-sm text-slate-700 leading-relaxed resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                          />
+                          
+                          {/* Actions */}
+                          <div className="absolute bottom-4 right-4 flex gap-2">
+                            <button 
+                              onClick={() => { setDevice(''); setMonths(''); }}
+                              className="p-2 bg-white border border-slate-300 text-slate-500 rounded-lg hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
+                              title="Reset Fields"
+                            >
+                              <RotateCcw className="w-5 h-5" />
+                            </button>
+                            {/* Primary Action Button */}
+                            <button 
+                              onClick={handleAddToCase}
+                              className="flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-md active:scale-95 transition-all"
+                            >
+                              <Plus className="w-5 h-5" /> Add Note
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* POPUP MODAL for "Add Another?" */}
+              {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full border-4 border-yellow-400">
+                        <div className="text-center mb-6">
+                            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Check className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900">Note Saved to Case!</h3>
+                            <p className="text-slate-600 text-sm mt-1">Did you do another plan for this customer?</p>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={handleAddAnother}
+                                className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <Plus className="w-5 h-5" /> Yes, Add Another Plan
+                            </button>
+                            <button 
+                                onClick={handleFinishCase}
+                                className="w-full py-3 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-600 font-semibold rounded-xl transition-colors"
+                            >
+                                No, Finish & Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+              )}
+
+              {/* STICKY FOOTER "Case Builder" */}
+              {caseChain.length > 0 && !showAddModal && (
+                  <div className="fixed bottom-0 left-0 right-0 bg-slate-900 text-white p-4 z-40 shadow-lg animate-in slide-in-from-bottom duration-300">
+                      <div className="max-w-4xl mx-auto flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                              <div className="bg-yellow-400 text-slate-900 font-bold w-8 h-8 rounded-full flex items-center justify-center">
+                                  {caseChain.length}
+                              </div>
+                              <div>
+                                  <p className="font-bold text-sm">Building Case Chain...</p>
+                                  <p className="text-slate-400 text-xs hidden sm:block">Select another plan or finish now.</p>
+                              </div>
+                          </div>
+                          <div className="flex gap-3">
+                              <button 
+                                onClick={() => { setCaseChain([]); navigateHome(); }}
+                                className="p-2 text-slate-400 hover:text-white"
+                                title="Cancel Case"
+                              >
+                                  <X className="w-5 h-5" />
+                              </button>
+                              <button 
+                                onClick={handleFinishCase}
+                                className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg hover:shadow-yellow-400/20 transition-all"
+                              >
+                                  <Clipboard className="w-4 h-4" /> All Done? (Copy All)
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
+              <div className="max-w-4xl mx-auto mt-4 text-center text-slate-400 text-xs">
+                 Proudly created by Oliver K @ 076
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
